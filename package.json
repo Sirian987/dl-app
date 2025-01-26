@@ -12,6 +12,8 @@
         "express": "^4.17.1",
         "fluent-ffmpeg": "^2.1.2",
         "helmet": "^8.0.0",
+    "node-fetch": "^2.7.0",
+    "axios": "*",
         "moment-timezone": "^0.5.46",
         "yt-search": "^2.10.7",
             "@distube/ytdl-core":"*" 
