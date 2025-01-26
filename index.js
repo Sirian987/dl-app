@@ -36,7 +36,7 @@ app.use((req, res, next) => {
     ipRequests[ip].push(currentTime);
     ipRequests[ip] = ipRequests[ip].filter(timestamp => currentTime - timestamp <= 60000);
 
-    if (ipRequests[ip].length > 5) {
+    if (ipRequests[ip].length > 20) {
         bannedIPs.push(ip);
         saveBannedIPs();
 
@@ -79,7 +79,7 @@ const logRequestDetails = (req, type, status, extraDetails = {}) => {
         paddedText(`File Size  : ${fileSize}`),
         paddedText(`Status     : ${status}`),
         paddedText(" "),
-        paddedText(`©Nauval Sada unesa`),
+        paddedText(`© amba rian deploy`),
         footer
     ].join('\n');
 
@@ -180,60 +180,17 @@ app.get('/download', async (req, res) => {
             throw new Error('No suitable audio format found.');
         }
 
-        const videoPath = path.join(__dirname, 'tmp', `video_${Date.now()}.mp4`);
-        const audioPath = path.join(__dirname, 'tmp', `audio_${Date.now()}.mp4`);
-        const outputPath = path.join(__dirname, 'tmp', `output_${Date.now()}.mp4`);
-
+        
         await new Promise((resolve, reject) => {
             ytdl(url, { format: videoFormat })
-                .pipe(fs.createWriteStream(videoPath))
+                .pipe(res)
                 .on('finish', resolve)
                 .on('error', reject);
         });
 
-        await new Promise((resolve, reject) => {
-            ytdl(url, { format: audioFormat })
-                .pipe(fs.createWriteStream(audioPath))
-                .on('finish', resolve)
-                .on('error', reject);
-        });
+        
 
-        await new Promise((resolve, reject) => {
-            ffmpeg()
-                .input(videoPath)
-                .input(audioPath)
-                .outputOptions(['-c:v copy', '-c:a aac', '-strict experimental'])
-                .save(outputPath)
-                .on('end', resolve)
-                .on('error', reject);
-        });
-
-        const fileSizeMB = (fs.statSync(outputPath).size / (1024 * 1024)).toFixed(2);
-
-        if (parseFloat(fileSizeMB) > 1500) {
-            return res.status(400).send('File size exceeds the 1500 MB limit.');
-        }
-
-        res.download(outputPath, `${videoDetails.title}.mp4`, (err) => {
-            if (!err) {
-                logRequestDetails(req, 'download', 'Success', {
-                    resolution: `${resolution}p`,
-                    duration: videoDetails.lengthSeconds,
-                    fileSize: `${fileSizeMB} MB`
-                });
-            } else {
-                logRequestDetails(req, 'download', 'Failed: Download error', {
-                    resolution: `${resolution}p`,
-                    duration: videoDetails.lengthSeconds,
-                    fileSize: `${fileSizeMB} MB`
-                });
-            }
-
-            deleteFileAfterDelay(videoPath);
-            deleteFileAfterDelay(audioPath);
-            deleteFileAfterDelay(outputPath);
-        });
-    } catch (error) {
+            } catch (error) {
         logRequestDetails(req, 'download', `Failed: ${error.message}`);
         res.status(500).send(`Error downloading video: ${error.message}`);
     }
@@ -260,37 +217,16 @@ app.get('/audio', async (req, res) => {
         if (!audioFormat) {
             throw new Error('No suitable audio format found.');
         }
-
-        const audioPath = path.join(__dirname, 'tmp', `audio_${Date.now()}.mp3`);
-
-        await new Promise((resolve, reject) => {
+res.header('Content-Disposition', `attachment; filename="${info.videoDetails.title}.mp4"`)  
+                await new Promise((resolve, reject) => {
             ytdl(url, { format: audioFormat })
-                .pipe(fs.createWriteStream(audioPath))
+                .pipe(res)
                 .on('finish', resolve)
                 .on('error', reject);
         });
 
-        const fileSizeMB = (fs.statSync(audioPath).size / (1024 * 1024)).toFixed(2);
-
-        if (parseFloat(fileSizeMB) > 1200) {
-            return res.status(400).send('Audio file size exceeds 1200 MB.');
-        }
-
-        res.download(audioPath, `${videoDetails.title}.mp3`, (err) => {
-            if (err) {
-                logRequestDetails(req, 'audio', 'Failed: Download error', {
-                    bitrate: `${bitrate} kbps`,
-                    fileSize: `${fileSizeMB} MB`
-                });
-            } else {
-                logRequestDetails(req, 'audio', 'Success', {
-                    bitrate: `${bitrate} kbps`,
-                    fileSize: `${fileSizeMB} MB`
-                });
-            }
-
-            deleteFileAfterDelay(audioPath);
-        });
+        
+        
     } catch (error) {
         logRequestDetails(req, 'audio', `Failed: ${error.message}`);
         res.status(500).send(`Error downloading audio: ${error.message}`);
