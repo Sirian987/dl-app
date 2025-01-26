@@ -5,7 +5,7 @@ const axios = require('axios');
 const path = require('path');
 const yts = require('yt-search')
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = 3000;
 const YOUTUBE_API_KEY = 'AIzaSyB1bRFJEil3Mf_KUFhQiWXUWedAERxXbt4'; // Ganti dengan API Key Anda
 function Mp4(url) {
   return new Promise((resolve, reject) => {
