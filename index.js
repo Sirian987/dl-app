@@ -116,18 +116,15 @@ app.get('/info', async (req, res) => {
 
 app.get('/download', async (req, res) => {
     const url = req.query.url;
-    const resolution = parseInt(req.query.resolution, 10);
-    if (!url || !ytdl.validateURL(url)) {
-        logRequestDetails(req, 'download', 'Failed: Invalid URL');
-        return res.status(400).send('Invalid YouTube URL');
+    const resolution = req.query.resolution;
+
+    if (!url) {
+        return res.status(400).send('URL video YouTube diperlukan.');
     }
 
     try {
         const info = await ytdl.getInfo(url);
-        const videoDetails = info.videoDetails;
-
-        
-const format = ytdl.chooseFormat(info.formats, { quality: resolution });
+        const format = ytdl.chooseFormat(info.formats, { quality: resolution });
 
         if (!format) {
             return res.status(400).send('Resolusi tidak ditemukan.');
@@ -135,46 +132,27 @@ const format = ytdl.chooseFormat(info.formats, { quality: resolution });
 
         res.header('Content-Disposition', `attachment; filename="${info.videoDetails.title}.mp4"`);
         ytdl(url, { format }).pipe(res);
-        
-
-            } catch (error) {
-        logRequestDetails(req, 'download', `Failed: ${error.message}`);
-        res.status(500).send(`Error downloading video: ${error.message}`);
+    } catch (error) {
+        console.error(error);
+        res.status(500).send('Terjadi kesalahan saat memproses permintaan Anda.');
     }
 });
 
 app.get('/audio', async (req, res) => {
     const url = req.query.url;
-        if (!url || !ytdl.validateURL(url)) {
-        logRequestDetails(req, 'audio', 'Failed: Invalid URL');
-        return res.status(400).send('Invalid YouTube URL');
+    if (!url) {
+        return res.status(400).send('URL video YouTube diperlukan.');
     }
 
     try {
         const info = await ytdl.getInfo(url);
-        const videoDetails = info.videoDetails;
-
-        
-res.header('Content-Disposition', `attachment; filename="${info.videoDetails.title}.mp4"`)  
-                ytdl(url, { filter: 'audioonly' }).pipe(res);
-
-
-        
-        
+        res.header('Content-Disposition', `attachment; filename="${info.videoDetails.title}.mp3"`);
+        ytdl(url, { filter: 'audioonly' }).pipe(res);
     } catch (error) {
-        logRequestDetails(req, 'audio', `Failed: ${error.message}`);
-        res.status(500).send(`Error downloading audio: ${error.message}`);
+        console.error(error);
+        res.status(500).send('Terjadi kesalahan saat memproses permintaan Anda.');
     }
 });
-
-const deleteFileAfterDelay = (filePath) => {
-    setTimeout(() => {
-        if (fs.existsSync(filePath)) {
-            fs.unlinkSync(filePath);
-        }
-    }, 10 * 60 * 1000); 
-};
-
 app.listen(PORT, () => {
     console.log(`Server is running on http://localhost:${PORT}`);
 });
