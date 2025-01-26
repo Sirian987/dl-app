@@ -12,50 +12,6 @@ const PORT = 3000;
 
 app.use(express.static('public'));
 
-let bannedIPs = JSON.parse(fs.readFileSync('bannip.json', 'utf8') || '[]');
-
-const saveBannedIPs = () => {
-    fs.writeFileSync('bannip.json', JSON.stringify(bannedIPs, null, 2), 'utf8');
-};
-
-const ipRequests = {};
-const unbanTimers = {};
-
-app.use((req, res, next) => {
-    const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
-
-    if (bannedIPs.includes(ip)) {
-        return res.status(403).send('Access denied. Your IP is banned.');
-    }
-
-    const currentTime = Date.now();
-    if (!ipRequests[ip]) {
-        ipRequests[ip] = [];
-    }
-
-    ipRequests[ip].push(currentTime);
-    ipRequests[ip] = ipRequests[ip].filter(timestamp => currentTime - timestamp <= 60000);
-
-    if (ipRequests[ip].length > 20) {
-        bannedIPs.push(ip);
-        saveBannedIPs();
-
-        unbanTimers[ip] = setTimeout(() => {
-            const index = bannedIPs.indexOf(ip);
-            if (index !== -1) {
-                bannedIPs.splice(index, 1);
-                saveBannedIPs();
-                console.log(`IP ${ip} has been unbanned.`);
-            }
-            delete unbanTimers[ip];
-        }, 5 * 60 * 1000); // 5 minutes
-
-        return res.status(403).send('Your IP is temporarily banned for 5 minutes due to spam.');
-    }
-
-    next();
-});
-
 const logRequestDetails = (req, type, status, extraDetails = {}) => {
     const ip = req.headers['x-forwarded-for'] || req.connection.remoteAddress;
     const time = moment().tz('Asia/Jakarta').format('YYYY-MM-DDTHH:mm:ss.SSSZ');
