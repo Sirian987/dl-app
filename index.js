@@ -170,24 +170,15 @@ app.get('/download', async (req, res) => {
         const info = await ytdl.getInfo(url);
         const videoDetails = info.videoDetails;
 
-        const videoFormat = info.formats.find(f => f.height === resolution && f.container === 'mp4');
-        const audioFormat = ytdl.chooseFormat(info.formats, { quality: 'highestaudio', filter: 'audioonly' });
-
-        if (!videoFormat) {
-            throw new Error('No suitable video format found.');
-        }
-        if (!audioFormat) {
-            throw new Error('No suitable audio format found.');
-        }
-
         
-        await new Promise((resolve, reject) => {
-            ytdl(url, { format: videoFormat })
-                .pipe(res)
-                .on('finish', resolve)
-                .on('error', reject);
-        });
+const format = ytdl.chooseFormat(info.formats, { quality: resolution });
 
+        if (!format) {
+            return res.status(400).send('Resolusi tidak ditemukan.');
+        }
+
+        res.header('Content-Disposition', `attachment; filename="${info.videoDetails.title}.mp4"`);
+        ytdl(url, { format }).pipe(res);
         
 
             } catch (error) {
@@ -198,8 +189,7 @@ app.get('/download', async (req, res) => {
 
 app.get('/audio', async (req, res) => {
     const url = req.query.url;
-    const bitrate = parseInt(req.query.bitrate, 10);
-    if (!url || !ytdl.validateURL(url)) {
+        if (!url || !ytdl.validateURL(url)) {
         logRequestDetails(req, 'audio', 'Failed: Invalid URL');
         return res.status(400).send('Invalid YouTube URL');
     }
@@ -208,22 +198,10 @@ app.get('/audio', async (req, res) => {
         const info = await ytdl.getInfo(url);
         const videoDetails = info.videoDetails;
 
-        const audioFormat = ytdl.chooseFormat(info.formats, {
-            quality: 'highestaudio',
-            filter: 'audioonly',
-            audioBitrate: bitrate
-        });
-
-        if (!audioFormat) {
-            throw new Error('No suitable audio format found.');
-        }
+        
 res.header('Content-Disposition', `attachment; filename="${info.videoDetails.title}.mp4"`)  
-                await new Promise((resolve, reject) => {
-            ytdl(url, { format: audioFormat })
-                .pipe(res)
-                .on('finish', resolve)
-                .on('error', reject);
-        });
+                ytdl(url, { filter: 'audioonly' }).pipe(res);
+
 
         
         
