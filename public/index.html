@@ -1,0 +1,264 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>YTDownloader by Nauval Sains Data</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background: linear-gradient(to right, #f4f4f9, #cfd9df);
+            color: #333;
+            margin: 0;
+            padding: 0;
+        }
+        video#backgroundVideo {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            z-index: -1;
+        }
+        .container {
+            max-width: 600px;
+            margin: 50px auto;
+            background: #fff;
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+        }
+        h1 {
+            text-align: center;
+            color: #007bff;
+        }
+        .description {
+            text-align: center;
+            margin-top: -15px;
+            font-size: 0.9rem;
+            color: #555;
+        }
+        .form-group {
+            margin-bottom: 20px;
+        }
+        label {
+            font-size: 1rem;
+            font-weight: bold;
+            display: block;
+            margin-bottom: 5px;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            margin-bottom: 10px;
+            box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.1);
+        }
+        input[type="text"]:focus {
+            border-color: #007bff;
+            box-shadow: 0 0 5px rgba(0, 123, 255, 0.1);
+        }
+        button {
+            width: 100%;
+            padding: 10px;
+            font-size: 1rem;
+            background-color: #007bff;
+            color: #fff;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            transition: background-color 0.3s, transform 0.3s;
+            margin-bottom: 10px;
+        }
+        button:hover {
+            background-color: #0056b3;
+            transform: scale(1.05);
+        }
+        .result, .search-results {
+            margin-top: 20px;
+            text-align: center;
+        }
+        .video-item {
+            margin: 10px 0;
+            padding: 10px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            text-align: left;
+        }
+        .video-item img {
+            max-width: 100%;
+            height: auto;
+            border-radius: 8px;
+        }
+        .watermark {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #888;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <video id="backgroundVideo" autoplay muted loop></video>
+
+    <div class="container">
+        <h1>YTDownloader by Nauval Sains Data</h1>
+        <p class="description">
+            Website downloader video & Audio YouTube by Nauval Sains Data Unesa
+        </p>
+
+        <!-- Video Search Section -->
+        <div class="form-group">
+            <label for="search">Search YouTube Videos:</label>
+            <input type="text" id="search" placeholder="Enter keywords to search">
+        </div>
+        <button id="searchButton">Search Videos</button>
+        <div class="search-results" id="searchResults"></div>
+
+        <!-- Download Section -->
+        <div class="form-group">
+            <label for="url">Enter YouTube Video URL:</label>
+            <input type="text" id="url" placeholder="Paste YouTube video URL here">
+        </div>
+        <button id="fetchInfo">Get Video Info</button>
+        <div class="result" id="result"></div>
+        <div id="options" style="display: none;">
+            <div class="form-group">
+                <label for="resolution">Select Video Resolution:</label>
+                <select id="resolution"></select>
+            </div>
+            <div class="form-group">
+                <label for="bitrate">Select Audio Bitrate:</label>
+                <select id="bitrate"></select>
+            </div>
+            <button id="downloadMP4">Download Video</button>
+            <button id="downloadMP3" style="background-color: #28a745;">Download Audio</button>
+        </div>
+        <div class="watermark">Web ini dibuat oleh M. Nauval Sayyid Abdillah (Sada Unesa)</div>
+    </div>
+
+    <script>
+        const fetchInfoButton = document.getElementById('fetchInfo');
+        const searchButton = document.getElementById('searchButton');
+        const downloadMP4Button = document.getElementById('downloadMP4');
+        const downloadMP3Button = document.getElementById('downloadMP3');
+        const resultDiv = document.getElementById('result');
+        const searchResults = document.getElementById('searchResults');
+        const optionsDiv = document.getElementById('options');
+        const resolutionSelect = document.getElementById('resolution');
+        const bitrateSelect = document.getElementById('bitrate');
+
+        // Search Videos
+        searchButton.addEventListener('click', async () => {
+            const query = document.getElementById('search').value.trim();
+
+            if (!query) {
+                alert('Please enter a search query');
+                return;
+            }
+
+            searchResults.innerHTML = 'Searching videos...';
+
+            try {
+                const response = await fetch(`/search?q=${encodeURIComponent(query)}`);
+                if (!response.ok) throw new Error(await response.text());
+                const data = await response.json();
+
+                if (data.videos.length === 0) {
+                    searchResults.innerHTML = '<p>No videos found.</p>';
+                    return;
+                }
+
+                searchResults.innerHTML = data.videos.map(video => `
+    <div class="video-item">
+        <h3>${video.title}</h3>
+        <img src="${video.thumbnail}" alt="Thumbnail">
+        <p><strong>Duration:</strong> ${video.duration}</p>
+        <p><strong>Views:</strong> ${video.views.toLocaleString()}</p>
+        <p><strong>Uploaded:</strong> ${video.uploaded}</p>
+        <p><strong>Author:</strong> ${video.author}</p>
+        <a href="${video.url}" target="_blank">${video.url}</a>
+    </div>
+`).join('');
+
+            } catch (error) {
+                searchResults.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+            }
+        });
+
+        // Fetch Video Info and Download
+        fetchInfoButton.addEventListener('click', async () => {
+            const url = document.getElementById('url').value.trim();
+
+            if (!url) {
+                alert('Please enter a valid YouTube URL');
+                return;
+            }
+
+            resultDiv.innerHTML = 'Fetching video info...';
+
+            try {
+                const response = await fetch(`/info?url=${encodeURIComponent(url)}`);
+                if (!response.ok) throw new Error(await response.text());
+                const data = await response.json();
+
+                resultDiv.innerHTML = `
+                    <div class="info">
+                        <p><strong>Title:</strong> ${data.title}</p>
+                        <p><strong>Uploader:</strong> ${data.uploader}</p>
+                        <p><strong>Duration:</strong> ${data.duration}</p>
+                        <p><strong>Available Resolutions:</strong> ${data.resolutions.map(r => `${r.height}p (${r.size})`).join(', ')}</p>
+                        <p><strong>Available Bitrates:</strong> ${data.audioBitrates.map(b => `${b.bitrate} kbps (${b.size})`).join(', ')}</p>
+                    </div>
+                    <img src="${data.thumbnail}" alt="Thumbnail">
+                `;
+
+                resolutionSelect.innerHTML = data.resolutions.map(r => `<option value="${r.height}">${r.height}p (${r.size})</option>`).join('');
+                bitrateSelect.innerHTML = data.audioBitrates.map(b => `<option value="${b.bitrate}">${b.bitrate} kbps (${b.size})</option>`).join('');
+
+                optionsDiv.style.display = 'block';
+
+                downloadMP4Button.onclick = () => {
+                    const resolution = resolutionSelect.value;
+                    window.location.href = `/download?url=${encodeURIComponent(url)}&resolution=${resolution}`;
+                };
+
+                downloadMP3Button.onclick = () => {
+                    const bitrate = bitrateSelect.value;
+                    window.location.href = `/audio?url=${encodeURIComponent(url)}&bitrate=${bitrate}`;
+                };
+
+            } catch (error) {
+                resultDiv.innerHTML = `<p class="error">Error: ${error.message}</p>`;
+                optionsDiv.style.display = 'none';
+            }
+        });
+
+        function updateBackgroundVideo() {
+            const now = new Date();
+            
+            // Adjust to WIB (GMT+7)
+            const wibHours = (now.getUTCHours() + 7) % 24;
+            const videoElement = document.getElementById("backgroundVideo");
+            
+            if (wibHours >= 18 || wibHours < 4) {
+                videoElement.src = "https://pomf2.lain.la/f/sq7h8yc.mp4";
+            } else if (wibHours >= 4 && wibHours < 6) {
+                videoElement.src = "https://pomf2.lain.la/f/6a4w0jqv.mp4";
+            } else if (wibHours >= 6 && wibHours < 16) {
+                videoElement.src = "https://pomf2.lain.la/f/m6j4fdpd.mp4";
+            } else if (wibHours >= 16 && wibHours < 18) {
+                videoElement.src = "https://pomf2.lain.la/f/m6j4fdpd.mp4";
+            }
+        }
+
+        // Update video source when page loads
+        updateBackgroundVideo();
+    </script>
+</body>
+</html>
