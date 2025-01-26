@@ -225,12 +225,12 @@
 
                 downloadMP4Button.onclick = () => {
                     const resolution = resolutionSelect.value;
-                    window.location.href = `/download?url=${encodeURIComponent(url)}&resolution=${resolution}`;
+                    window.location.href = `/download?url=${encodeURIComponent(url)}`;
                 };
 
                 downloadMP3Button.onclick = () => {
                     const bitrate = bitrateSelect.value;
-                    window.location.href = `/audio?url=${encodeURIComponent(url)}&bitrate=${bitrate}`;
+                    window.location.href = `/audio?url=${encodeURIComponent(url)}`;
                 };
 
             } catch (error) {
