@@ -3,6 +3,7 @@ const ytdl = require('@distube/ytdl-core');
 const fetch = require('node-fetch');
 const axios = require('axios');
 const path = require('path');
+const yts = require('yt-search')
 const app = express();
 const PORT = process.env.PORT || 3000;
 const YOUTUBE_API_KEY = 'AIzaSyB1bRFJEil3Mf_KUFhQiWXUWedAERxXbt4'; // Ganti dengan API Key Anda
@@ -184,16 +185,67 @@ app.get('/download', async (req, res) => {
     }
 });
 app.get('/search', async (req, res) => {
-    const query = req.query.query;
-    const response = await axios.get(`https://www.googleapis.com/youtube/v3/search`, {
-        params: {
-            part: 'snippet',
-            type: 'video',
-            q: query,
-            key: YOUTUBE_API_KEY
-        }
-    });
-    res.json(response.data);
+    const query = req.query.q;
+
+    if (!query) {
+        return res.status(400).json({ error: 'Query parameter "q" is required' });
+    }
+
+    try {
+        const searchResult = await yts(query);
+
+        
+        const videos = searchResult.videos.slice(0, 10).map(video => ({
+            title: video.title,
+            url: video.url,
+            duration: video.timestamp,
+            views: video.views,
+            thumbnail: video.thumbnail,
+            uploaded: video.ago,
+            author: video.author.name,
+        }));
+
+        res.json({ query, videos });
+    } catch (error) {
+        console.error('Error fetching search results:', error.message);
+        res.status(500).json({ error: 'Failed to fetch search results' });
+    }
+});
+
+app.get('/info', async (req, res) => {
+    const url = req.query.url;
+    if (!url || !ytdl.validateURL(url)) {
+                return res.status(400).json({ error: 'Invalid YouTube URL' });
+    }
+
+    try {
+        const info = await ytdl.getInfo(url);
+        const videoDetails = info.videoDetails;
+
+        const response = {
+            title: videoDetails.title,
+            uploader: videoDetails.author.name,
+            thumbnail: videoDetails.thumbnails[0].url,
+            duration: new Date(videoDetails.lengthSeconds * 1000).toISOString().substr(11, 8),
+            resolutions: info.formats
+                .filter(f => f.hasVideo && f.container === 'mp4')
+                .map(f => ({ height: f.height, size: (f.contentLength / (1024 * 1024)).toFixed(2) + ' MB' }))
+                .filter((value, index, self) => self.findIndex(v => v.height === value.height) === index)
+                .sort((a, b) => b.height - a.height),
+            audioBitrates: info.formats
+                .filter(f => f.hasAudio)
+                .map(f => ({ bitrate: f.audioBitrate, size: (f.contentLength / (1024 * 1024)).toFixed(2) + ' MB' }))
+                .filter((value, index, self) => self.findIndex(v => v.bitrate === value.bitrate) === index)
+                .sort((a, b) => b.bitrate - a.bitrate)
+        };
+
+        
+
+        res.json(response);
+    } catch (error) {
+           console.error('Error fetching YouTube video info:', error);
+        res.status(500).json({ error: 'Error fetching video info' });
+    }
 });
 app.get('/audio', async (req, res) => {
     const url = req.query.url;
